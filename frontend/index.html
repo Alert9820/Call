@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Audio Call</title>
 </head>
 <body>
@@ -11,9 +11,10 @@
 
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script>
-    const socket = io("https://call-2kx5.onrender.com"); // yaha apna backend URL daalna
+    const socket = io("https://YOUR_BACKEND_URL"); // apna backend URL daalo
     let peerConnection;
     let localStream;
+    let room;
 
     const servers = {
       iceServers: [
@@ -25,6 +26,10 @@
         }
       ]
     };
+
+    // Room join
+    room = prompt("Enter room name:");
+    socket.emit("join-room", room);
 
     document.getElementById("startCall").onclick = async () => {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -38,17 +43,15 @@
 
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
-          socket.emit("ice-candidate", { to: targetId, candidate: event.candidate });
+          socket.emit("ice-candidate", { room: room, candidate: event.candidate });
         }
       };
 
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
 
-      socket.emit("offer", { to: targetId, sdp: offer });
+      socket.emit("offer", { room: room, sdp: offer });
     };
-
-    let targetId = prompt("Enter other user's socket ID:");
 
     socket.on("offer", async (data) => {
       peerConnection = new RTCPeerConnection(servers);
@@ -61,7 +64,7 @@
 
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
-          socket.emit("ice-candidate", { to: data.from, candidate: event.candidate });
+          socket.emit("ice-candidate", { room: room, candidate: event.candidate });
         }
       };
 
@@ -69,7 +72,7 @@
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
 
-      socket.emit("answer", { to: data.from, sdp: answer });
+      socket.emit("answer", { room: room, sdp: answer });
     });
 
     socket.on("answer", async (data) => {
