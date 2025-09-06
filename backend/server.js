@@ -5,6 +5,7 @@ import cors from "cors";
 
 const app = express();
 const server = http.createServer(app);
+
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -15,16 +16,25 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  // Room join karna
+  socket.on("join-room", (room) => {
+    socket.join(room);
+    console.log(`${socket.id} joined room ${room}`);
+  });
+
+  // Offer bhejna
   socket.on("offer", (data) => {
-    socket.to(data.to).emit("offer", { from: socket.id, sdp: data.sdp });
+    socket.to(data.room).emit("offer", { from: socket.id, sdp: data.sdp });
   });
 
+  // Answer bhejna
   socket.on("answer", (data) => {
-    socket.to(data.to).emit("answer", { from: socket.id, sdp: data.sdp });
+    socket.to(data.room).emit("answer", { from: socket.id, sdp: data.sdp });
   });
 
+  // ICE Candidate bhejna
   socket.on("ice-candidate", (data) => {
-    socket.to(data.to).emit("ice-candidate", { from: socket.id, candidate: data.candidate });
+    socket.to(data.room).emit("ice-candidate", { from: socket.id, candidate: data.candidate });
   });
 
   socket.on("disconnect", () => {
